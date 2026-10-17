@@ -27,7 +27,7 @@ function writeJson(path, value) {
 }
 
 function stagePlatformPackage({ os, cpu, asset }) {
-  const name = `sunodl-${os}-${cpu}`;
+  const name = `@codevico/sunodl-${os}-${cpu}`;
   const packageDir = join(outDir, name);
   const executable = os === "win32" ? "sunodl.exe" : "sunodl";
   const binary = join(packageDir, "bin", executable);

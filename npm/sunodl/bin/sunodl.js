@@ -3,7 +3,7 @@
 
 const { spawnSync } = require("node:child_process");
 
-const platformPackage = `sunodl-${process.platform}-${process.arch}`;
+const platformPackage = `@codevico/sunodl-${process.platform}-${process.arch}`;
 const executable = process.platform === "win32" ? "sunodl.exe" : "sunodl";
 
 function resolveBinary() {
