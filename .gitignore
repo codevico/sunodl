@@ -1,0 +1,7 @@
+dist/
+/sunodl
+/sunodl.exe
+*.m4a
+license.json
+.DS_Store
+node_modules/

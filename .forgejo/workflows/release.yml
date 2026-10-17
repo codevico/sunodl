@@ -1,0 +1,76 @@
+name: release
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: docker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - run: go vet ./...
+      - run: go test ./...
+      - run: go build -trimpath -o /tmp/sunodl .
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: docker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build all targets
+        env:
+          VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'dev' }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          build() {
+            GOOS="$1" GOARCH="$2" CGO_ENABLED=0 \
+              go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o "dist/$3" .
+          }
+          build windows amd64 sunodl-windows-x64.exe
+          build windows arm64 sunodl-windows-arm64.exe
+          build linux amd64 sunodl-linux-x64
+          build linux arm64 sunodl-linux-arm64
+          build darwin amd64 sunodl-darwin-x64
+          build darwin arm64 sunodl-darwin-arm64
+          cd dist && sha256sum sunodl-* > SHA256SUMS
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TOKEN: ${{ github.token }}
+          API: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl jq
+          release_id=$(curl -sS -H "Authorization: token $TOKEN" "$API/releases/tags/$TAG" | jq -r '.id // empty')
+          if [ -z "$release_id" ]; then
+            release_id=$(curl -fsS -X POST \
+              -H "Authorization: token $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"tag_name\":\"$TAG\",\"name\":\"$TAG\",\"generate_release_notes\":true}" \
+              "$API/releases" | jq -r '.id')
+          fi
+          for file in dist/*; do
+            name=$(basename "$file")
+            asset_id=$(curl -sS -H "Authorization: token $TOKEN" "$API/releases/$release_id/assets" \
+              | jq -r --arg name "$name" '.[] | select(.name == $name) | .id')
+            if [ -n "$asset_id" ]; then
+              curl -fsS -X DELETE -H "Authorization: token $TOKEN" "$API/releases/$release_id/assets/$asset_id"
+            fi
+            curl -fsS -X POST -H "Authorization: token $TOKEN" \
+              -F "attachment=@$file" "$API/releases/$release_id/assets"
+          done
