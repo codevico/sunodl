@@ -11,6 +11,12 @@ Download and decrypt audio from suno.
 
 yt-dlp willingly [doesn't support it](https://github.com/yt-dlp/yt-dlp/issues/10368).
 
+## Install
+
+```bash
+npm install -g sunodl   # or: npx sunodl <url>
+```
+
 ## Build
 
 ```bash

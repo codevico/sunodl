@@ -1,0 +1,20 @@
+{
+  "name": "sunodl",
+  "version": "0.0.0",
+  "description": "Download and decrypt audio from suno",
+  "license": "0BSD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codevico/sunodl.git"
+  },
+  "bin": {
+    "sunodl": "bin/sunodl.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "optionalDependencies": {}
+}
